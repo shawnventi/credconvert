@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Access Card Converter</title>
+    <!-- https://electronjs.org/docs/tutorial/security#csp-meta-tag -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="script-src 'self' 'unsafe-inline';"
+    />
+    <script>
+      var BigNumber = require("bignumber.js");
+    </script>
+  </head>
+  <body>
+    <h3>Please scan a card</h3>
+    <input type="text" name="cardScan" id="cardScan" autofocus />
+    <input
+      type="button"
+      id="convertButton"
+      value="Convert"
+      onclick="convertNow()"
+    />
+    <br />
+    <br />
+    Facility code: <span id="fcDec"></span>
+    <br />
+    Card number: <span id="cnDec"></span>
+    <br />
+    <br />
+    <h3>Engage credential format</h3>
+    <br />
+    <span id="result"></span>
+    <script>
+      const input = document.getElementById("cardScan");
+
+      input.addEventListener("keyup", event => {
+        if (event.keyCode === 13) {
+          event.preventDefault();
+          document.getElementById("convertButton").click();
+        }
+      });
+
+      function convertNow() {
+        const value = input.value;
+
+        if (!value.startsWith("1a")) {
+          document.getElementById("result").innerHTML =
+            "Incorrect card format. Must be standard 26-bit. (H10301)";
+          return;
+        }
+
+        const raw26Bit = value.substring(2);
+
+        try {
+          var hex26Bit = new BigNumber(raw26Bit, 16);
+        } catch (err) {
+          document.getElementById("result").innerHTML = err;
+          return;
+        }
+
+        const bin26Bit = hex26Bit.toString(2).padStart(26, "0");
+        const fullBinary = bin26Bit.substring(1, 25);
+        const fcBinary = fullBinary.substr(0, 8);
+        const cnBinary = fullBinary.substr(8, 16);
+
+        try {
+          var fc = new BigNumber(fcBinary, 2);
+          var cn = new BigNumber(cnBinary, 2);
+        } catch (err) {
+          document.getElementById("result").innerHTML = err;
+          return;
+        }
+
+        const fcDec = fc.toString(10);
+        const cnDec = cn.toString(10);
+
+        const result = `${raw26Bit};26A;${fcDec};${cnDec};`;
+
+        // Show results
+        document.getElementById("fcDec").innerHTML = fcDec;
+        document.getElementById("cnDec").innerHTML = cnDec;
+        document.getElementById("result").innerHTML = result;
+      }
+    </script>
+  </body>
+</html>
